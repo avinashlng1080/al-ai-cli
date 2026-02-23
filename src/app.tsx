@@ -437,7 +437,8 @@ export function App({
           if (subCmd === "list") {
             try {
               const { OllamaProvider, formatSize } = await import("./providers/ollama.js");
-              const ollama = new OllamaProvider();
+              const ollamaBaseUrl = configRef.current?.provider === "ollama" ? configRef.current.baseUrl : undefined;
+              const ollama = new OllamaProvider(undefined, ollamaBaseUrl);
               const running = await ollama.isServerRunning();
               if (!running) {
                 setMessages((prev) => [
@@ -486,7 +487,8 @@ export function App({
           } else if (subCmd === "pull" && args[1]) {
             try {
               const { OllamaProvider } = await import("./providers/ollama.js");
-              const ollama = new OllamaProvider();
+              const ollamaBaseUrl = configRef.current?.provider === "ollama" ? configRef.current.baseUrl : undefined;
+              const ollama = new OllamaProvider(undefined, ollamaBaseUrl);
               setMessages((prev) => [
                 ...prev,
                 {
@@ -520,7 +522,8 @@ export function App({
           } else if ((subCmd === "rm" || subCmd === "remove") && args[1]) {
             try {
               const { OllamaProvider } = await import("./providers/ollama.js");
-              const ollama = new OllamaProvider();
+              const ollamaBaseUrl = configRef.current?.provider === "ollama" ? configRef.current.baseUrl : undefined;
+              const ollama = new OllamaProvider(undefined, ollamaBaseUrl);
               await ollama.removeModel(args[1]);
               setMessages((prev) => [
                 ...prev,

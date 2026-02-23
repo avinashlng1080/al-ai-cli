@@ -77,7 +77,7 @@ function parseArgs(args: string[]): {
 
 function printHelp(): void {
   console.log(`
-zen - AI coding assistant for Chinese AI providers
+zen - AI coding assistant with Chinese AI providers and local Ollama support
 
 Usage:
   zen                           Start interactive session
@@ -136,21 +136,25 @@ async function runOllamaCommand(
   const { OllamaProvider, formatSize } = await import("./providers/ollama.js");
   const ollama = new OllamaProvider();
 
+  async function ensureServerRunning(): Promise<void> {
+    const running = await ollama.isServerRunning();
+    if (!running) {
+      console.error(
+        `Cannot connect to Ollama at ${ollama.getBaseUrl()}.\nIs Ollama running? Start it with: ollama serve`,
+      );
+      process.exit(1);
+    }
+  }
+
   switch (subCmd) {
     case "list": {
-      const running = await ollama.isServerRunning();
-      if (!running) {
-        console.error(
-          `Cannot connect to Ollama at ${ollama.getBaseUrl()}.\nIs Ollama running? Start it with: ollama serve`,
-        );
-        process.exit(1);
-      }
+      await ensureServerRunning();
       const models = await ollama.listModels();
       if (models.length === 0) {
         console.log("No models installed. Pull one with: zen ollama pull <model>");
         console.log("Popular models: llama3.2, qwen2.5, deepseek-r1, codellama");
       } else {
-        console.log("NAME\t\t\t\tSIZE\t\tMODIFIED");
+        console.log(`${"NAME".padEnd(32)}${"SIZE".padEnd(16)}MODIFIED`);
         for (const m of models) {
           const name = m.name.padEnd(32);
           const size = formatSize(m.size).padEnd(16);
@@ -166,16 +170,10 @@ async function runOllamaCommand(
         console.error("Example: zen ollama pull llama3.2");
         process.exit(1);
       }
-      const running = await ollama.isServerRunning();
-      if (!running) {
-        console.error(
-          `Cannot connect to Ollama at ${ollama.getBaseUrl()}.\nIs Ollama running? Start it with: ollama serve`,
-        );
-        process.exit(1);
-      }
+      await ensureServerRunning();
       console.log(`Pulling ${modelName}...`);
       for await (const progress of ollama.pullModel(modelName)) {
-        if (progress.total && progress.completed) {
+        if (progress.total != null && progress.completed != null) {
           const pct = Math.round((progress.completed / progress.total) * 100);
           process.stdout.write(
             `\r${progress.status}: ${pct}% (${formatSize(progress.completed)}/${formatSize(progress.total)})`,
@@ -193,13 +191,7 @@ async function runOllamaCommand(
         console.error("Usage: zen ollama rm <model>");
         process.exit(1);
       }
-      const running = await ollama.isServerRunning();
-      if (!running) {
-        console.error(
-          `Cannot connect to Ollama at ${ollama.getBaseUrl()}.\nIs Ollama running? Start it with: ollama serve`,
-        );
-        process.exit(1);
-      }
+      await ensureServerRunning();
       await ollama.removeModel(modelName);
       console.log(`Removed model: ${modelName}`);
       break;

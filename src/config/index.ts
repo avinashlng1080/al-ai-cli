@@ -70,7 +70,7 @@ function getEnvApiKey(provider: ProviderName): string | undefined {
     kimi: ["KIMI_API_KEY", "ZEN_API_KEY"],
     glm: ["GLM_API_KEY", "ZEN_API_KEY"],
     deepseek: ["DEEPSEEK_API_KEY", "ZEN_API_KEY"],
-    ollama: ["ZEN_API_KEY"],
+    ollama: [], // early return above; listed for Record<ProviderName, …> completeness
     custom: ["ZEN_API_KEY"],
   };
   for (const key of map[provider]) {
@@ -100,9 +100,10 @@ export function resolveConfig(
   // Resolve API key: env > provider config
   const apiKey = getEnvApiKey(providerName) ?? providerConfig.apiKey ?? "";
 
-  // Resolve model: CLI > env > project > provider config > default
+  // Resolve model: CLI > env (provider-specific) > env (generic) > project > provider config > default
   const model =
     cliModel ??
+    (providerName === "ollama" ? process.env.OLLAMA_MODEL : undefined) ??
     process.env.ZEN_MODEL ??
     project.model ??
     providerConfig.model ??

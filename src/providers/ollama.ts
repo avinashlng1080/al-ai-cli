@@ -78,8 +78,9 @@ export class OllamaProvider implements BaseProvider {
     const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
     // Combine external signal with our timeout
+    const onExternalAbort = () => controller.abort();
     if (options.signal) {
-      options.signal.addEventListener("abort", () => controller.abort());
+      options.signal.addEventListener("abort", onExternalAbort);
     }
 
     try {
@@ -111,6 +112,9 @@ export class OllamaProvider implements BaseProvider {
       }
     } finally {
       clearTimeout(timeoutId);
+      if (options.signal) {
+        options.signal.removeEventListener("abort", onExternalAbort);
+      }
     }
   }
 

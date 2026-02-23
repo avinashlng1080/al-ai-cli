@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+export const PROVIDER_NAMES = ["kimi", "glm", "deepseek", "ollama", "custom"] as const;
+export type ProviderName = (typeof PROVIDER_NAMES)[number];
+
 export const ProviderConfigSchema = z.object({
   apiKey: z.string().optional(),
   baseUrl: z.string().url().optional(),
@@ -20,10 +23,10 @@ export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 
 export const GlobalConfigSchema = z.object({
   defaultProvider: z
-    .enum(["kimi", "glm", "deepseek", "ollama", "custom"])
+    .enum(PROVIDER_NAMES)
     .default("deepseek"),
   providers: z
-    .record(z.enum(["kimi", "glm", "deepseek", "ollama", "custom"]), ProviderConfigSchema)
+    .record(z.enum(PROVIDER_NAMES), ProviderConfigSchema)
     .default({}),
   mcpServers: z.record(z.string(), McpServerConfigSchema).default({}),
 });
@@ -31,15 +34,13 @@ export const GlobalConfigSchema = z.object({
 export type GlobalConfig = z.infer<typeof GlobalConfigSchema>;
 
 export const ProjectConfigSchema = z.object({
-  provider: z.enum(["kimi", "glm", "deepseek", "ollama", "custom"]).optional(),
+  provider: z.enum(PROVIDER_NAMES).optional(),
   model: z.string().optional(),
   contextFile: z.string().default("ZEN.md"),
   mcpServers: z.record(z.string(), McpServerConfigSchema).default({}),
 });
 
 export type ProjectConfig = z.infer<typeof ProjectConfigSchema>;
-
-export type ProviderName = "kimi" | "glm" | "deepseek" | "ollama" | "custom";
 
 export interface ResolvedConfig {
   provider: ProviderName;
