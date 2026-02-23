@@ -71,6 +71,9 @@ export function estimateCost(
     },
   };
 
+  // Ollama is free local inference
+  if (provider === "ollama") return 0;
+
   const providerPricing = pricing[provider] ?? {};
   const [inputPrice, outputPrice] =
     providerPricing[model] ?? providerPricing["default"] ?? [10, 10];

@@ -1,10 +1,11 @@
 # zen
 
-A Claude Code-style agentic CLI for Chinese AI providers.
+A Claude Code-style agentic coding CLI that supports Chinese AI providers and local models via Ollama.
 
 ## Features
 
 - **Multiple providers**: Kimi (Moonshot AI), GLM (Zhipu AI), DeepSeek, and any OpenAI-compatible API
+- **Local models via Ollama**: Run entirely offline with locally hosted LLMs — no API keys needed
 - **Agentic loop**: Autonomous tool use with permission controls
 - **Built-in tools**: File operations, bash, search, web fetch
 - **MCP support**: Connect to Model Context Protocol servers
@@ -31,6 +32,9 @@ bun run src/cli.tsx -p "explain this code" src/app.tsx
 
 # Use a specific provider
 bun run src/cli.tsx --provider kimi --model moonshot-v1-128k
+
+# Run locally with Ollama (no API key required)
+bun run src/cli.tsx --provider ollama --model llama3.2
 ```
 
 ## Build
@@ -94,6 +98,8 @@ bun run build
 | `KIMI_API_KEY` | Kimi (Moonshot) API key |
 | `GLM_API_KEY` | GLM (Zhipu) API key |
 | `DEEPSEEK_API_KEY` | DeepSeek API key |
+| `OLLAMA_HOST` | Ollama server URL (default: `http://localhost:11434`) |
+| `OLLAMA_MODEL` | Default Ollama model (default: `llama3.2`) |
 
 Priority: Environment variables > Project config > Global config
 
@@ -113,10 +119,31 @@ Priority: Environment variables > Project config > Global config
 
 | Provider | Base URL | Models |
 |---|---|---|
+| Ollama | `localhost:11434` (local) | Any model from the Ollama library (llama3.2, codellama, mistral, etc.) |
 | Kimi | `api.moonshot.cn/v1` | moonshot-v1-8k, 32k, 128k |
 | GLM | `open.bigmodel.cn/api/paas/v4` | glm-4-plus, glm-4, glm-4-flash |
 | DeepSeek | `api.deepseek.com/v1` | deepseek-chat, deepseek-coder |
 | Custom | Configurable | Any OpenAI-compatible model |
+
+## Running Locally with Ollama
+
+zen can run entirely offline using [Ollama](https://ollama.com) for local model inference — no API keys or cloud services required.
+
+### Setup
+
+```bash
+# 1. Install Ollama (https://ollama.com/download)
+# 2. Start the Ollama server
+ollama serve
+
+# 3. Pull a model
+ollama pull llama3.2
+
+# 4. Run zen with Ollama
+bun run src/cli.tsx --provider ollama --model llama3.2
+```
+
+zen automatically detects locally available models via the Ollama API. You can also pull and manage models through the `zen init` setup flow.
 
 ## Built-in Tools
 

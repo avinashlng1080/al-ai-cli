@@ -3,6 +3,7 @@ import type { BaseProvider } from "./base.js";
 import { KimiProvider } from "./kimi.js";
 import { GLMProvider } from "./glm.js";
 import { DeepSeekProvider } from "./deepseek.js";
+import { OllamaProvider } from "./ollama.js";
 import { OpenAICompatProvider } from "./openai-compat.js";
 
 export function createProvider(config: ResolvedConfig): BaseProvider {
@@ -13,6 +14,8 @@ export function createProvider(config: ResolvedConfig): BaseProvider {
       return new GLMProvider(config.apiKey, config.model, config.baseUrl);
     case "deepseek":
       return new DeepSeekProvider(config.apiKey, config.model, config.baseUrl);
+    case "ollama":
+      return new OllamaProvider(config.model, config.baseUrl);
     case "custom":
       return new OpenAICompatProvider({
         name: "custom",
@@ -29,7 +32,7 @@ export function createProvider(config: ResolvedConfig): BaseProvider {
 }
 
 export function getAvailableProviders(): ProviderName[] {
-  return ["kimi", "glm", "deepseek", "custom"];
+  return ["kimi", "glm", "deepseek", "ollama", "custom"];
 }
 
 export type { BaseProvider } from "./base.js";

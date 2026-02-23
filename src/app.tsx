@@ -64,7 +64,7 @@ export function App({
         const config = resolveConfig(initialProvider, initialModel);
         configRef.current = config;
 
-        if (!config.apiKey) {
+        if (!config.apiKey && config.provider !== "ollama") {
           setStatusMessage(
             `No API key configured for ${config.provider}. Set ${config.provider.toUpperCase()}_API_KEY or run 'zen init'.`,
           );
@@ -388,7 +388,7 @@ export function App({
               {
                 id: `sys-${Date.now()}`,
                 role: "system",
-                content: `Current provider: ${currentProvider}. Usage: /provider <kimi|glm|deepseek|custom>`,
+                content: `Current provider: ${currentProvider}. Usage: /provider <kimi|glm|deepseek|ollama|custom>`,
               },
             ]);
           }
@@ -432,6 +432,135 @@ export function App({
           }
           break;
 
+        case "ollama": {
+          const subCmd = args[0];
+          if (subCmd === "list") {
+            try {
+              const { OllamaProvider, formatSize } = await import("./providers/ollama.js");
+              const ollamaBaseUrl = configRef.current?.provider === "ollama" ? configRef.current.baseUrl : undefined;
+              const ollama = new OllamaProvider(undefined, ollamaBaseUrl);
+              const running = await ollama.isServerRunning();
+              if (!running) {
+                setMessages((prev) => [
+                  ...prev,
+                  {
+                    id: `sys-${Date.now()}`,
+                    role: "system",
+                    content: `Cannot connect to Ollama at ${ollama.getBaseUrl()}. Is Ollama running? Start it with: ollama serve`,
+                  },
+                ]);
+              } else {
+                const models = await ollama.listModels();
+                if (models.length === 0) {
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: `sys-${Date.now()}`,
+                      role: "system",
+                      content: "No models installed. Pull one with: zen ollama pull <model>",
+                    },
+                  ]);
+                } else {
+                  const lines = models.map(
+                    (m) => `  ${m.name.padEnd(28)} ${formatSize(m.size).padEnd(12)} ${new Date(m.modified_at).toLocaleDateString()}`,
+                  );
+                  setMessages((prev) => [
+                    ...prev,
+                    {
+                      id: `sys-${Date.now()}`,
+                      role: "system",
+                      content: `Local Ollama models:\n${lines.join("\n")}`,
+                    },
+                  ]);
+                }
+              }
+            } catch (err) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `sys-${Date.now()}`,
+                  role: "system",
+                  content: `Error: ${err instanceof Error ? err.message : String(err)}`,
+                },
+              ]);
+            }
+          } else if (subCmd === "pull" && args[1]) {
+            try {
+              const { OllamaProvider } = await import("./providers/ollama.js");
+              const ollamaBaseUrl = configRef.current?.provider === "ollama" ? configRef.current.baseUrl : undefined;
+              const ollama = new OllamaProvider(undefined, ollamaBaseUrl);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `sys-${Date.now()}`,
+                  role: "system",
+                  content: `Pulling model ${args[1]}... (this may take a while)`,
+                },
+              ]);
+              let lastStatus = "";
+              for await (const progress of ollama.pullModel(args[1])) {
+                lastStatus = progress.status;
+              }
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `sys-${Date.now()}`,
+                  role: "system",
+                  content: `Model ${args[1]} pulled successfully. Status: ${lastStatus}`,
+                },
+              ]);
+            } catch (err) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `sys-${Date.now()}`,
+                  role: "system",
+                  content: `Error pulling model: ${err instanceof Error ? err.message : String(err)}`,
+                },
+              ]);
+            }
+          } else if ((subCmd === "rm" || subCmd === "remove") && args[1]) {
+            try {
+              const { OllamaProvider } = await import("./providers/ollama.js");
+              const ollamaBaseUrl = configRef.current?.provider === "ollama" ? configRef.current.baseUrl : undefined;
+              const ollama = new OllamaProvider(undefined, ollamaBaseUrl);
+              await ollama.removeModel(args[1]);
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `sys-${Date.now()}`,
+                  role: "system",
+                  content: `Removed model: ${args[1]}`,
+                },
+              ]);
+            } catch (err) {
+              setMessages((prev) => [
+                ...prev,
+                {
+                  id: `sys-${Date.now()}`,
+                  role: "system",
+                  content: `Error removing model: ${err instanceof Error ? err.message : String(err)}`,
+                },
+              ]);
+            }
+          } else {
+            setMessages((prev) => [
+              ...prev,
+              {
+                id: `sys-${Date.now()}`,
+                role: "system",
+                content: [
+                  "Ollama commands:",
+                  "  /ollama list          - List local models",
+                  "  /ollama pull <model>  - Pull a model",
+                  "  /ollama rm <model>    - Remove a model",
+                ].join("\n"),
+              },
+            ]);
+          }
+          break;
+        }
+
         case "mcp": {
           const subCmd = args[0];
           if (subCmd === "list") {
@@ -472,8 +601,9 @@ export function App({
                 "  /clear     - Clear conversation",
                 "  /compact   - Summarize and compress context",
                 "  /cost      - Show token usage and cost",
-                "  /provider  - Switch provider (kimi, glm, deepseek, custom)",
+                "  /provider  - Switch provider (kimi, glm, deepseek, ollama, custom)",
                 "  /model     - Switch model",
+                "  /ollama    - Ollama model management (list, pull, rm)",
                 "  /mcp list  - List connected MCP servers",
                 "  /help      - Show this help",
                 "",

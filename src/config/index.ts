@@ -31,6 +31,10 @@ const DEFAULT_PROVIDER_SETTINGS: Record<
     baseUrl: "https://api.deepseek.com/v1",
     defaultModel: "deepseek-chat",
   },
+  ollama: {
+    baseUrl: "http://localhost:11434",
+    defaultModel: "llama3.2",
+  },
   custom: {
     baseUrl: "",
     defaultModel: "",
@@ -59,10 +63,14 @@ export function loadProjectConfig(cwd: string = process.cwd()): ProjectConfig {
 }
 
 function getEnvApiKey(provider: ProviderName): string | undefined {
+  // Ollama doesn't require an API key
+  if (provider === "ollama") return "ollama";
+
   const map: Record<ProviderName, string[]> = {
     kimi: ["KIMI_API_KEY", "ZEN_API_KEY"],
     glm: ["GLM_API_KEY", "ZEN_API_KEY"],
     deepseek: ["DEEPSEEK_API_KEY", "ZEN_API_KEY"],
+    ollama: [], // early return above; listed for Record<ProviderName, …> completeness
     custom: ["ZEN_API_KEY"],
   };
   for (const key of map[provider]) {
@@ -92,16 +100,20 @@ export function resolveConfig(
   // Resolve API key: env > provider config
   const apiKey = getEnvApiKey(providerName) ?? providerConfig.apiKey ?? "";
 
-  // Resolve model: CLI > env > project > provider config > default
+  // Resolve model: CLI > env (provider-specific) > env (generic) > project > provider config > default
   const model =
     cliModel ??
+    (providerName === "ollama" ? process.env.OLLAMA_MODEL : undefined) ??
     process.env.ZEN_MODEL ??
     project.model ??
     providerConfig.model ??
     defaults.defaultModel;
 
-  // Resolve base URL: provider config > default
-  const baseUrl = providerConfig.baseUrl ?? defaults.baseUrl;
+  // Resolve base URL: env (for ollama) > provider config > default
+  const baseUrl =
+    providerName === "ollama"
+      ? process.env.OLLAMA_HOST ?? providerConfig.baseUrl ?? defaults.baseUrl
+      : providerConfig.baseUrl ?? defaults.baseUrl;
 
   // Merge MCP servers: project overrides global
   const mcpServers: Record<string, McpServerConfig> = {

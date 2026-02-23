@@ -39,7 +39,7 @@ export async function runInit(): Promise<void> {
   // Choose default provider
   const defaultProvider = await question(
     rl,
-    "Default provider (kimi/glm/deepseek/custom) [deepseek]: ",
+    "Default provider (kimi/glm/deepseek/ollama/custom) [deepseek]: ",
   );
 
   // Configure each provider
@@ -80,6 +80,20 @@ export async function runInit(): Promise<void> {
   const dsModel = await question(rl, "Model [deepseek-chat]: ");
   if (dsModel) {
     providers.deepseek = { ...providers.deepseek, model: dsModel };
+  }
+
+  console.log("\n--- Ollama (Local) ---");
+  console.log("Ollama runs locally - no API key needed.");
+  const ollamaUrl = await question(
+    rl,
+    `Server URL${providers.ollama?.baseUrl ? ` (${providers.ollama.baseUrl})` : ""} [http://localhost:11434]: `,
+  );
+  if (ollamaUrl) {
+    providers.ollama = { ...providers.ollama, baseUrl: ollamaUrl };
+  }
+  const ollamaModel = await question(rl, "Default model [llama3.2]: ");
+  if (ollamaModel) {
+    providers.ollama = { ...providers.ollama, model: ollamaModel };
   }
 
   rl.close();
